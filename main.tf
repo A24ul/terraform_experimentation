@@ -16,7 +16,7 @@ variable "instance_type" {
 
 variable "instance_count" {
   description = "EC2 instance count"
-  default     = 3
+  default     = 2
   type        = number
 }
 
@@ -56,6 +56,55 @@ resource "aws_security_group" "allow_web" {
     Name = "Security_grp"
   }
 }
+
+resource "random_id" "suffix" {
+  byte_length = 4
+}
+
+resource "aws_s3_bucket" "main" {
+  bucket = "my-aws-s3-bucket-${random_id.suffix.hex}"
+}
+
+resource "aws_s3_bucket_versioning" "main" {
+  bucket = aws_s3_bucket.main.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "main" {
+  bucket                  = aws_s3_bucket.main.id
+  block_public_acls       = true
+  ignore_public_acls      = true
+  block_public_policy     = true
+  restrict_public_buckets = true
+}
+
+/*
+resource "aws_s3_bucket_server_side_encryption_configuration" "main" {
+  bucket = aws_s3_bucket.main.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+# Clean up old versions so storage costs don't grow forever
+resource "aws_s3_bucket_lifecycle_configuration" "main" {
+  depends_on = [aws_s3_bucket_versioning.main]
+  bucket     = aws_s3_bucket.main.id
+
+  rule {
+    id     = "expire-old-versions"
+    status = "Enabled"
+    filter {}
+    noncurrent_version_expiration {
+      noncurrent_days = 90
+    }
+  }
+}
+*/
 
 /*
 resource "aws_vpc" "first_vpc" {
